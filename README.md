@@ -2,7 +2,7 @@
 
 ## Abstract
 [OHDet]() can be applied to rotation detection and object heading detection. Its structure combines many of my previous research contents, including [R<sup>3</sup>Det](https://arxiv.org/abs/1908.05612), [IoU-Smooth L1 Loss](https://arxiv.org/abs/1811.07126), [CSL](https://arxiv.org/abs/2003.05597), etc.    
-Project page at https://yangxue0827.github.io/OHDet.html
+Project page at https://yangxue0827.github.io/CSL_GCL_OHDet.html
 
 **We also recommend a tensorflow-based [rotation detection benchmark](https://github.com/yangxue0827/RotationDetection), which is led by [YangXue](https://yangxue0827.github.io/).**
 
