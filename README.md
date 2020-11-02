@@ -1,7 +1,29 @@
 # Object Heading Detection
 
 ## Abstract
-OHDet can be applied to rotation detection and object heading detection. Its structure combines many of my previous research contents, including [R<sup>3</sup>Det](https://arxiv.org/abs/1908.05612), [IoU-Smooth L1 Loss](https://arxiv.org/abs/1811.07126), [CSL](https://arxiv.org/abs/2003.05597), etc.
+[OHDet]() can be applied to rotation detection and object heading detection. Its structure combines many of my previous research contents, including [R<sup>3</sup>Det](https://arxiv.org/abs/1908.05612), [IoU-Smooth L1 Loss](https://arxiv.org/abs/1811.07126), [CSL](https://arxiv.org/abs/2003.05597), etc.    
+Project page at https://yangxue0827.github.io/OHDet.html
+
+**We also recommend a tensorflow-based [rotation detection benchmark](https://github.com/yangxue0827/RotationDetection), which is led by [YangXue](https://yangxue0827.github.io/).**
+
+## Pipeline
+The figure below is the architecture of the proposed detector (RetinaNet as an embodiment).    
+     
+![5](pipeline.png)
+
+## Latest Performance
+### OHD-SJTU-L
+| Model | Model Link | PL | SH | SV | LV | HA | HC | AP<sub>50</sub> | AP<sub>75</sub> | AP<sub>50:95</sub> |  Configs  |  
+|:------------:|:------------:|:------------:|:------------:|:---------:|:-----------:|:------------:|:------------:|:------------:|:---------:|:-----------:|:-----------:|   
+|  [R<sup>2</sup>CNN](https://arxiv.org/abs/1706.09579) | - | 90.02 | 80.83 | 63.07 | 64.16 | 66.36 | 55.94 | 70.06 | 32.70 | 35.44 | - |
+|  [RRPN](https://arxiv.org/pdf/1703.01086) | - | 89.55 | 82.60 | 57.36 | 72.26 | 63.01 | 45.27 | 68.34 | 22.03 | 31.12 | - |
+|  [RetinaNet-H]((https://arxiv.org/abs/1908.05612)) | | 90.22 | 80.04 | 63.32 | 63.49 | 63.73 | 53.77 | 69.10 | 35.90 | 36.89 | [cfgs_res101_ohd-sjtu-all_v1.py](./libs/configs/OHD-SJTU/cfgs_res101_ohd-sjtu-all_v1.py) |
+|  [RetinaNet-R]((https://arxiv.org/abs/1908.05612)) | | 90.00 | 86.90 | 63.24 | 86.90 | 62.85 | 52.35 | 72.78 | 40.13 | 40.58 | [cfgs_res101_ohd-sjtu-all_v2.py](./libs/configs/OHD-SJTU/cfgs_res101_ohd-sjtu-all_v1.py) |
+|  [R<sup>3</sup>Det](https://arxiv.org/abs/1908.05612)  | | 89.89 | 87.69 | 65.20 | 78.95 | 57.06 | 53.50 | 72.05 | 36.51 | 38.57 | [cfgs_res101_ohd-sjtu-all_r3det_v1.py](./libs/configs/OHD-SJTU/cfgs_res101_ohd-sjtu-all_r3det_v1.py) |
+|  OHDet (ours) | | 89.73 | 86.63 | 61.37 | 78.80 | 63.76 | 54.62 | 72.49 | 43.60 | 41.29 | [cfgs_res101_ohd-sjtu-all_r3det_csl_v1.py](./libs/configs/OHD-SJTU/cfgs_res101_ohd-sjtu-all_r3det_csl_v1.py) |
+
+## Visualization
+![1](P0086.jpg)
 
 ## My Development Environment
 **docker images: docker pull yangxue2docker/yx-tf-det:tensorflow1.13.1-cuda10-gpu-py3**      
@@ -25,6 +47,12 @@ python setup.py build_ext --inplace (or make)
 
 cd $PATH_ROOT/libs/box_utils/
 python setup.py build_ext --inplace
+
+cd $PATH_ROOT/eval_devkit
+sudo apt-get install swig
+swig -c++ -python polyiou.i
+python setup.py build_ext --inplace
+
 ```
 
 ## Train
@@ -33,13 +61,13 @@ python setup.py build_ext --inplace
 ```     
 (1) Modify parameters (such as CLASS_NUM, DATASET_NAME, VERSION, etc.) in $PATH_ROOT/libs/configs/cfgs.py
 (2) Add category information in $PATH_ROOT/libs/label_name_dict/lable_dict.py     
-(3) Add data_name to $PATH_ROOT/data/io/read_tfrecord_multi_gpu.py  
+(3) Add data_name to $PATH_ROOT/data/io/read_tfrecord_multi_gpu_ohdet.py  
 ```     
 
 2、Make tfrecord     
-For DOTA dataset:      
+For OHD-SJTU dataset:      
 ```  
-cd $PATH_ROOT\data\io\DOTA
+cd $PATH_ROOT/data/io/OHD-SJTU
 python data_crop.py
 ```  
 
@@ -50,21 +78,26 @@ python convert_data_to_tfrecord.py --VOC_dir='/PATH/TO/DOTA/'
                                    --image_dir='images'
                                    --save_name='train' 
                                    --img_format='.png' 
-                                   --dataset='DOTA'
+                                   --dataset='OHD-SJTU'
 ```      
 
 3、Multi-gpu train
 ```  
 cd $PATH_ROOT/tools
-python multi_gpu_train_r3det.py
+python multi_gpu_train_r3det_csl_ohdet.py
 ```
 
-## Eval
+## Test
 ```  
 cd $PATH_ROOT/tools
-python test_dota_r3det.py --test_dir='/PATH/TO/IMAGES/'  
-                          --gpus=0,1,2,3,4,5,6,7          
+python test_dota_r3det_csl_ohdet.py --test_dir='/PATH/TO/IMAGES/'  
+                                    --gpus=0,1,2,3,4,5,6,7  
+
+cd $PATH_ROOT/eval_devkit
+python OHD_SJTU_evaluation_OHD.py
 ``` 
+
+**Notice: In order to set the breakpoint conveniently, the read and write mode of the file is' a+'. If the model of the same #VERSION needs to be tested again, the original test results need to be deleted.**      
 
 ## Tensorboard
 ```  
@@ -72,6 +105,9 @@ cd $PATH_ROOT/output/summary
 tensorboard --logdir=.
 ``` 
 
+![3](images.png)
+
+![4](scalars.png)
 
 ## Citation
 
@@ -119,9 +155,9 @@ If this is useful for your research, please consider cite.
 ```
 
 ## Reference
-1、https://github.com/endernewton/tf-faster-rcnn   
-2、https://github.com/zengarden/light_head_rcnn   
-3、https://github.com/tensorflow/models/tree/master/research/object_detection    
-4、https://github.com/fizyr/keras-retinanet     
+- https://github.com/endernewton/tf-faster-rcnn   
+- https://github.com/zengarden/light_head_rcnn   
+- https://github.com/tensorflow/models/tree/master/research/object_detection    
+- https://github.com/fizyr/keras-retinanet     
 
 
