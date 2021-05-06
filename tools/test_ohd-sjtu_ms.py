@@ -15,7 +15,7 @@ import argparse
 from multiprocessing import Queue, Process
 sys.path.append("../")
 
-from libs.networks import build_whole_network_r3det_csl_ohdet
+from libs.networks import build_whole_network
 from help_utils import tools
 from libs.label_name_dict.label_dict import *
 from libs.box_utils import draw_box_in_img
@@ -37,12 +37,10 @@ def worker(gpu_id, images, det_net, args, result_queue):
 
     img_batch = tf.expand_dims(img_batch, axis=0)
 
-    detection_boxes, detection_scores, detection_category, detection_boxes_head, detection_boxes_angle = det_net.build_whole_detection_network(
+    detection_boxes, detection_scores, detection_category = det_net.build_whole_detection_network(
         input_img_batch=img_batch,
         gtboxes_batch_h=None,
-        gtboxes_batch_r=None,
-        gthead_quadrant=None,
-        gt_smooth_label=None)
+        gtboxes_batch_r=None)
 
     init_op = tf.group(
         tf.global_variables_initializer(),
@@ -68,7 +66,6 @@ def worker(gpu_id, images, det_net, args, result_queue):
             img = cv2.imread(img_path)
 
             box_res_rotate = []
-            head_res_rotate = []
             label_res_rotate = []
             score_res_rotate = []
 
@@ -109,12 +106,11 @@ def worker(gpu_id, images, det_net, args, result_queue):
                             new_h, new_w = short_size, min(int(short_size * float(args.w_len) / args.h_len), max_len)
                         else:
                             new_h, new_w = min(int(short_size * float(args.h_len) / args.w_len), max_len), short_size
-
                         img_resize = cv2.resize(src_img, (new_w, new_h))
 
-                        resized_img, det_boxes_r_, det_head_r_, det_scores_r_, det_category_r_= \
+                        resized_img, det_boxes_r_, det_scores_r_, det_category_r_ = \
                             sess.run(
-                                [img_batch, detection_boxes_angle, detection_boxes_head, detection_scores, detection_category],
+                                [img_batch, detection_boxes, detection_scores, detection_category],
                                 feed_dict={img_plac: img_resize[:, :, ::-1]}
                             )
 
@@ -132,17 +128,14 @@ def worker(gpu_id, images, det_net, args, result_queue):
                                 box_rotate[0::2] = box_rotate[0::2] + ww_
                                 box_rotate[1::2] = box_rotate[1::2] + hh_
                                 box_res_rotate.append(box_rotate)
-                                head_res_rotate.append(det_head_r_[ii])
                                 label_res_rotate.append(det_category_r_[ii])
                                 score_res_rotate.append(det_scores_r_[ii])
 
             box_res_rotate = np.array(box_res_rotate)
-            head_res_rotate = np.array(head_res_rotate)
             label_res_rotate = np.array(label_res_rotate)
             score_res_rotate = np.array(score_res_rotate)
 
             box_res_rotate_ = []
-            head_res_rotate_ = []
             label_res_rotate_ = []
             score_res_rotate_ = []
             threshold = {'small-vehicle': 0.2, 'ship': 0.2, 'plane': 0.3,
@@ -153,7 +146,6 @@ def worker(gpu_id, images, det_net, args, result_queue):
                 if len(index) == 0:
                     continue
                 tmp_boxes_r = box_res_rotate[index]
-                tmp_head_r = head_res_rotate[index]
                 tmp_label_r = label_res_rotate[index]
                 tmp_score_r = score_res_rotate[index]
 
@@ -176,12 +168,10 @@ def worker(gpu_id, images, det_net, args, result_queue):
                                      float(threshold[LABEL_NAME_MAP[sub_class]]), 0)
 
                 box_res_rotate_.extend(np.array(tmp_boxes_r)[inx])
-                head_res_rotate_.extend(np.array(tmp_head_r)[inx])
                 score_res_rotate_.extend(np.array(tmp_score_r)[inx])
                 label_res_rotate_.extend(np.array(tmp_label_r)[inx])
 
-            result_dict = {'boxes': np.array(box_res_rotate_),  'heads': np.array(head_res_rotate_),
-                           'scores': np.array(score_res_rotate_),
+            result_dict = {'boxes': np.array(box_res_rotate_), 'scores': np.array(score_res_rotate_),
                            'labels': np.array(label_res_rotate_), 'image_id': img_path}
             result_queue.put_nowait(result_dict)
 
@@ -222,7 +212,6 @@ def test_ohd_sjtu(det_net, real_test_img_list, args, txt_name):
             detected_indices = res['scores'] >= cfgs.VIS_SCORE
             detected_scores = res['scores'][detected_indices]
             detected_boxes = detected_boxes[detected_indices]
-            detected_heads = res['heads'][detected_indices]
             detected_categories = res['labels'][detected_indices]
 
             final_detections = draw_box_in_img.draw_boxes_with_label_and_scores(draw_img,
@@ -230,8 +219,6 @@ def test_ohd_sjtu(det_net, real_test_img_list, args, txt_name):
                                                                                 labels=detected_categories,
                                                                                 scores=detected_scores,
                                                                                 method=1,
-                                                                                head=detected_heads,
-                                                                                is_csl=True,
                                                                                 in_graph=False)
             cv2.imwrite(draw_path, final_detections)
 
@@ -248,11 +235,10 @@ def test_ohd_sjtu(det_net, real_test_img_list, args, txt_name):
             # rboxes = forward_convert(res['boxes'], with_label=False)
 
             for i, rbox in enumerate(res['boxes']):
-                command = '%s %.3f %.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f %d\n' % (res['image_id'].split('/')[-1].split('.')[0],
-                                                                                    res['scores'][i],
-                                                                                    rbox[0], rbox[1], rbox[2], rbox[3],
-                                                                                    rbox[4], rbox[5], rbox[6], rbox[7],
-                                                                                    int(res['heads'][i]))
+                command = '%s %.3f %.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f\n' % (res['image_id'].split('/')[-1].split('.')[0],
+                                                                                 res['scores'][i],
+                                                                                 rbox[0], rbox[1], rbox[2], rbox[3],
+                                                                                 rbox[4], rbox[5], rbox[6], rbox[7],)
                 write_handle[LABEL_NAME_MAP[res['labels'][i]]].write(command)
 
             for sub_class in CLASS_OHD_SJTU:
@@ -302,9 +288,9 @@ def eval(num_imgs, args):
     else:
         real_test_img_list = test_imgname_list[: num_imgs]
 
-    ohdet = build_whole_network_r3det_csl_ohdet.DetectionNetwork(base_network_name=cfgs.NET_NAME,
-                                                                 is_training=False)
-    test_ohd_sjtu(det_net=ohdet, real_test_img_list=real_test_img_list, args=args, txt_name=txt_name)
+    retinanet = build_whole_network.DetectionNetwork(base_network_name=cfgs.NET_NAME,
+                                                     is_training=False)
+    test_ohd_sjtu(det_net=retinanet, real_test_img_list=real_test_img_list, args=args, txt_name=txt_name)
 
     if not args.show_box:
         os.remove(txt_name)
@@ -351,22 +337,5 @@ if __name__ == '__main__':
     print(20*"--")
     eval(args.eval_num,
          args=args)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

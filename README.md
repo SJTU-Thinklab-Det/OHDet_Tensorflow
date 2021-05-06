@@ -114,6 +114,12 @@ tensorboard --logdir=.
 If this is useful for your research, please consider cite.
 
 ```
+@article{yang2020on,
+    title={On the Arbitrary-Oriented Object Detection: Classification based Approaches Revisited},
+    author={Yang, Xue and Yan, Junchi and He, Tao},
+    year={2020}
+}
+
 @article{yang2020arbitrary,
     title={Arbitrary-Oriented Object Detection with Circular Smooth Label},
     author={Yang, Xue and Yan, Junchi},
@@ -126,21 +132,6 @@ If this is useful for your research, please consider cite.
     title={R3Det: Refined Single-Stage Detector with Feature Refinement for Rotating Object},
     author={Yang, Xue and Liu, Qingqing and Yan, Junchi and Li, Ang and Zhang, Zhiqiang and Yu, Gang},
     journal={arXiv preprint arXiv:1908.05612},
-    year={2019}
-}
-
-@article{yang2020scrdet++,
-    title={SCRDet++: Detecting Small, Cluttered and Rotated Objects via Instance-Level Feature Denoising and Rotation Loss Smoothing},
-    author={Yang, Xue and Yan, Junchi and Yang, Xiaokang and Tang, Jin and Liao, Wenglong and He, Tao},
-    journal={arXiv preprint arXiv:2004.13316},
-    year={2020}
-}
-
-@inproceedings{yang2019scrdet,
-    title={SCRDet: Towards more robust detection for small, cluttered and rotated objects},
-    author={Yang, Xue and Yang, Jirui and Yan, Junchi and Zhang, Yue and Zhang, Tengfei and Guo, Zhi and Sun, Xian and Fu, Kun},
-    booktitle={Proceedings of the IEEE International Conference on Computer Vision (ICCV)},
-    pages={8232--8241},
     year={2019}
 }
 

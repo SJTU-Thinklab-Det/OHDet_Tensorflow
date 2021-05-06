@@ -153,21 +153,21 @@ def worker(gpu_id, images, det_net, args, result_queue):
 
                 tmp_boxes_r_ = backward_convert(tmp_boxes_r, False)
 
-                try:
-                    inx = nms_rotate.nms_rotate_cpu(boxes=np.array(tmp_boxes_r_),
-                                                    scores=np.array(tmp_score_r),
-                                                    iou_threshold=threshold[LABEL_NAME_MAP[sub_class]],
-                                                    max_output_size=5000)
-                except:
-                    tmp_boxes_r_ = np.array(tmp_boxes_r_)
-                    tmp = np.zeros([tmp_boxes_r_.shape[0], tmp_boxes_r_.shape[1] + 1])
-                    tmp[:, 0:-1] = tmp_boxes_r_
-                    tmp[:, -1] = np.array(tmp_score_r)
-                    # Note: the IoU of two same rectangles is 0, which is calculated by rotate_gpu_nms
-                    jitter = np.zeros([tmp_boxes_r_.shape[0], tmp_boxes_r_.shape[1] + 1])
-                    jitter[:, 0] += np.random.rand(tmp_boxes_r_.shape[0], ) / 1000
-                    inx = rotate_gpu_nms(np.array(tmp, np.float32) + np.array(jitter, np.float32),
-                                         float(threshold[LABEL_NAME_MAP[sub_class]]), 0)
+                # try:
+                #     inx = nms_rotate.nms_rotate_cpu(boxes=np.array(tmp_boxes_r_),
+                #                                     scores=np.array(tmp_score_r),
+                #                                     iou_threshold=threshold[LABEL_NAME_MAP[sub_class]],
+                #                                     max_output_size=5000)
+                # except:
+                tmp_boxes_r_ = np.array(tmp_boxes_r_)
+                tmp = np.zeros([tmp_boxes_r_.shape[0], tmp_boxes_r_.shape[1] + 1])
+                tmp[:, 0:-1] = tmp_boxes_r_
+                tmp[:, -1] = np.array(tmp_score_r)
+                # Note: the IoU of two same rectangles is 0, which is calculated by rotate_gpu_nms
+                jitter = np.zeros([tmp_boxes_r_.shape[0], tmp_boxes_r_.shape[1] + 1])
+                jitter[:, 0] += np.random.rand(tmp_boxes_r_.shape[0], ) / 1000
+                inx = rotate_gpu_nms(np.array(tmp, np.float32) + np.array(jitter, np.float32),
+                                     float(threshold[LABEL_NAME_MAP[sub_class]]), 0)
 
                 box_res_rotate_.extend(np.array(tmp_boxes_r)[inx])
                 score_res_rotate_.extend(np.array(tmp_score_r)[inx])
@@ -312,6 +312,8 @@ def parse_args():
                         help='the num of eval imgs',
                         default=np.inf, type=int)
     parser.add_argument('--show_box', '-s', default=False,
+                        action='store_true')
+    parser.add_argument('--multi_scale', '-ms', default=False,
                         action='store_true')
     parser.add_argument('--h_len', dest='h_len',
                         help='image height',
